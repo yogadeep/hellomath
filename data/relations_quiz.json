@@ -1,0 +1,104 @@
+{
+    "relations": [
+        {
+            "question": "Let A = {1, 2, 3} and B = {4, 5}. How many relations can be defined from A to B?",
+            "options": [
+                "6",
+                "10",
+                "32",
+                "64"
+            ],
+            "answer": 3
+        },
+        {
+            "question": "Let A = {1, 2, 3} and R = {(1,1), (2,2), (3,3), (1,2), (2,3)}. Which property does R satisfy?",
+            "options": [
+                "Only symmetric",
+                "Only reflexive",
+                "Reflexive and transitive",
+                "Symmetric and transitive"
+            ],
+            "answer": 1
+        },
+        {
+            "question": "Let f: R → R be defined by f(x) = x² + 2x + 3. Which statement is correct?",
+            "options": [
+                "f is one-one and onto",
+                "f is one-one but not onto",
+                "f is onto but not one-one",
+                "f is neither one-one nor onto"
+            ],
+            "answer": 3
+        },
+        {
+            "question": "If f(x) = (2x - 3)/(x + 1), x ≠ -1, then f⁻¹(x) is:",
+            "options": [
+                "(x + 3)/(2 - x)",
+                "(x - 3)/(x + 2)",
+                "(3 - x)/(x + 2)",
+                "(x + 3)/(x - 2)"
+            ],
+            "answer": 0
+        },
+        {
+            "question": "Let A = {1, 2, 3} and B = {a, b, c}. The number of one-one functions from A to B is:",
+            "options": [
+                "3",
+                "6",
+                "9",
+                "27"
+            ],
+            "answer": 1
+        },
+        {
+            "question": "Let f: R → R be defined by f(x) = x³ - x. Which statement is true?",
+            "options": [
+                "f is one-one",
+                "f is onto but not one-one",
+                "f is one-one but not onto",
+                "f is neither one-one nor onto"
+            ],
+            "answer": 1
+        },
+        {
+            "question": "If R = {(x,y) ∈ Z × Z : x - y is divisible by 3}, then R is:",
+            "options": [
+                "Reflexive only",
+                "Symmetric only",
+                "Reflexive, symmetric and transitive",
+                "Neither symmetric nor transitive"
+            ],
+            "answer": 2
+        },
+        {
+            "question": "If f(x) = 2x + 1 and g(x) = x², then (g ∘ f)(x) is:",
+            "options": [
+                "2x² + 1",
+                "4x² + 4x + 1",
+                "4x² + 1",
+                "2x² + 2x + 1"
+            ],
+            "answer": 1
+        },
+        {
+            "question": "Let f: R → R be defined by f(x) = |x|. Which statement is correct?",
+            "options": [
+                "f is one-one and onto",
+                "f is one-one but not onto",
+                "f is onto but not one-one",
+                "f is neither one-one nor onto"
+            ],
+            "answer": 2
+        },
+        {
+            "question": "If f(x) = (x - 1)/(x + 2), then the domain of f⁻¹ is:",
+            "options": [
+                "R - {1}",
+                "R - {-2}",
+                "R - {2}",
+                "R - {-1}"
+            ],
+            "answer": 0
+        }
+    ]
+}
