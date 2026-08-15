@@ -123,9 +123,15 @@ p, span, label, li {
 
 /* -------------------- BUTTONS -------------------- */
 
+.stButton > button,
+.stButton > button p,
+.stButton > button span,
+.stButton > button div {
+    color: #FFFFFF !important;
+}
+
 .stButton > button {
     background-color: var(--indigo);
-    color: white;
     border: none;
     border-radius: 10px;
     padding: 10px 22px;
@@ -135,11 +141,21 @@ p, span, label, li {
     box-shadow: 0 1px 2px rgba(16, 35, 63, 0.08);
 }
 
+.stButton > button:hover,
+.stButton > button:hover p,
+.stButton > button:hover span {
+    color: #FFFFFF !important;
+}
+
 .stButton > button:hover {
     background-color: var(--indigo-dark);
-    color: white;
     transform: translateY(-1px);
     box-shadow: 0 4px 10px rgba(16, 35, 63, 0.18);
+}
+
+.stButton > button:focus:not(:active),
+.stButton > button:focus {
+    color: #FFFFFF !important;
 }
 
 .stButton > button:active {
@@ -1779,21 +1795,25 @@ elif st.session_state.page == "leaderboard":
 
             medals = ["\U0001F947", "\U0001F948", "\U0001F949"]
 
-            podium_html = '<div class="podium-row">'
+            podium_cards = []
 
             for idx, row in enumerate(top_three):
 
                 card_class = "podium-card first" if idx == 0 else "podium-card"
 
-                podium_html += f"""
-                <div class="{card_class}">
-                    <div class="podium-medal">{medals[idx]}</div>
-                    <div class="podium-name">{row['Username']}</div>
-                    <div class="podium-score">{row['Total Score']} / {row['Total Questions']}</div>
-                </div>
-                """
+                podium_cards.append(
+                    f'<div class="{card_class}">'
+                    f'<div class="podium-medal">{medals[idx]}</div>'
+                    f'<div class="podium-name">{row["Username"]}</div>'
+                    f'<div class="podium-score">{row["Total Score"]} / {row["Total Questions"]}</div>'
+                    f'</div>'
+                )
 
-            podium_html += "</div>"
+            podium_html = (
+                '<div class="podium-row">'
+                + "".join(podium_cards)
+                + "</div>"
+            )
 
             if top_three:
 
