@@ -23,11 +23,17 @@ MATHS_ICON = "assets/maths_icon.png"
 # PAGE CONFIGURATION
 # ============================================================
 
-st.set_page_config(
-    page_title="Hello Math",
-    page_icon=MATHS_ICON,
-    layout="wide"
-)
+if os.path.exists(MATHS_ICON):
+    st.set_page_config(
+        page_title="Hello Math",
+        page_icon=MATHS_ICON,
+        layout="wide"
+    )
+else:
+    st.set_page_config(
+        page_title="Hello Math",
+        layout="wide"
+    )
 
 
 # ============================================================
@@ -37,18 +43,9 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* =========================================================
-   MAIN WEBSITE
-   ========================================================= */
-
 .stApp {
     background-color: #F4F7FB;
 }
-
-
-/* =========================================================
-   HEADINGS
-   ========================================================= */
 
 h1 {
     color: #173B6C;
@@ -65,19 +62,9 @@ h3 {
     font-weight: 600;
 }
 
-
-/* =========================================================
-   NORMAL TEXT
-   ========================================================= */
-
 p {
     color: #26384A;
 }
-
-
-/* =========================================================
-   BUTTONS
-   ========================================================= */
 
 .stButton > button {
     background-color: #24558C;
@@ -93,11 +80,6 @@ p {
     color: white;
 }
 
-
-/* =========================================================
-   TEXT INPUTS
-   ========================================================= */
-
 [data-testid="stTextInput"] input {
     background-color: white;
     color: #26384A;
@@ -110,11 +92,6 @@ p {
     box-shadow: 0 0 0 1px #24558C;
 }
 
-
-/* =========================================================
-   TABS
-   ========================================================= */
-
 button[data-baseweb="tab"] {
     color: #24558C;
     font-weight: 600;
@@ -124,11 +101,6 @@ button[data-baseweb="tab"][aria-selected="true"] {
     color: #173B6C;
 }
 
-
-/* =========================================================
-   QUIZ OPTIONS
-   ========================================================= */
-
 [data-testid="stRadio"] {
     background-color: white;
     padding: 18px;
@@ -136,19 +108,9 @@ button[data-baseweb="tab"][aria-selected="true"] {
     border: 1px solid #D8E1EC;
 }
 
-
-/* =========================================================
-   DIVIDERS
-   ========================================================= */
-
 hr {
     border-color: #D8E1EC;
 }
-
-
-/* =========================================================
-   CHAPTER CARDS
-   ========================================================= */
 
 .chapter-card {
     background-color: white;
@@ -168,11 +130,6 @@ hr {
     color: #526579;
 }
 
-
-/* =========================================================
-   RESULT CARD
-   ========================================================= */
-
 .result-card {
     background-color: white;
     padding: 30px;
@@ -187,11 +144,6 @@ hr {
     font-weight: 700;
     color: #173B6C;
 }
-
-
-/* =========================================================
-   BRAND
-   ========================================================= */
 
 .brand {
     font-size: 42px;
@@ -262,8 +214,118 @@ def hash_password(password):
 
 
 # ============================================================
-# GENERIC QUIZ LOADER
+# QUIZ DATA FUNCTIONS
 # ============================================================
+
+def is_valid_question(question):
+
+    if not isinstance(question, dict):
+        return False
+
+    if "question" not in question:
+        return False
+
+    if "options" not in question:
+        return False
+
+    if "answer" not in question:
+        return False
+
+    if not isinstance(question["question"], str):
+        return False
+
+    if not isinstance(question["options"], list):
+        return False
+
+    if len(question["options"]) == 0:
+        return False
+
+    answer = question["answer"]
+
+    if isinstance(answer, bool):
+        return False
+
+    if not isinstance(answer, int):
+        return False
+
+    if answer < 0:
+        return False
+
+    if answer >= len(question["options"]):
+        return False
+
+    return True
+
+
+def find_questions(data):
+
+    # --------------------------------------------------------
+    # Direct list of questions
+    # --------------------------------------------------------
+
+    if isinstance(data, list):
+
+        questions = []
+
+        for item in data:
+
+            if is_valid_question(item):
+                questions.append(item)
+
+        if questions:
+            return questions
+
+        # Check nested lists as well
+        for item in data:
+
+            result = find_questions(item)
+
+            if result:
+                return result
+
+        return []
+
+
+    # --------------------------------------------------------
+    # Dictionary
+    # --------------------------------------------------------
+
+    if isinstance(data, dict):
+
+        # First check common quiz names
+        preferred_keys = [
+            "questions",
+            "quiz",
+            "sets",
+            "relations",
+            "relation",
+            "trigonometry",
+            "relations_and_functions",
+            "relation_and_functions",
+            "relations_functions"
+        ]
+
+        for key in preferred_keys:
+
+            if key in data:
+
+                result = find_questions(
+                    data[key]
+                )
+
+                if result:
+                    return result
+
+        # Then check every value
+        for value in data.values():
+
+            result = find_questions(value)
+
+            if result:
+                return result
+
+    return []
+
 
 def load_quiz(file_path):
 
@@ -284,73 +346,7 @@ def load_quiz(file_path):
 
         return []
 
-
-    # --------------------------------------------------------
-    # The quiz files can use different top-level names.
-    # We check the common structures.
-    # --------------------------------------------------------
-
-    questions = None
-
-    if isinstance(data, dict):
-
-        if isinstance(data.get("questions"), list):
-
-            questions = data["questions"]
-
-        elif isinstance(data.get("sets"), list):
-
-            questions = data["sets"]
-
-        elif isinstance(data.get("quiz"), list):
-
-            questions = data["quiz"]
-
-
-    elif isinstance(data, list):
-
-        questions = data
-
-
-    if questions is None:
-        return []
-
-
-    # --------------------------------------------------------
-    # Validate every question
-    # --------------------------------------------------------
-
-    valid_questions = []
-
-    for question in questions:
-
-        if not isinstance(question, dict):
-            continue
-
-        if "question" not in question:
-            continue
-
-        if "options" not in question:
-            continue
-
-        if "answer" not in question:
-            continue
-
-        if not isinstance(question["options"], list):
-            continue
-
-        if not isinstance(question["answer"], int):
-            continue
-
-        if question["answer"] < 0:
-            continue
-
-        if question["answer"] >= len(question["options"]):
-            continue
-
-        valid_questions.append(question)
-
-    return valid_questions
+    return find_questions(data)
 
 
 # ============================================================
@@ -399,7 +395,12 @@ def save_leaderboard(data):
         )
 
 
-def save_quiz_score(username, quiz_name, score, total):
+def save_quiz_score(
+    username,
+    quiz_name,
+    score,
+    total
+):
 
     leaderboard = load_leaderboard()
 
@@ -420,6 +421,12 @@ def save_quiz_score(username, quiz_name, score, total):
             }
         }
 
+    if quiz_name not in leaderboard[username]:
+
+        leaderboard[username][quiz_name] = {
+            "score": 0,
+            "total": 0
+        }
 
     leaderboard[username][quiz_name] = {
         "score": score,
@@ -461,6 +468,132 @@ if "quiz_total" not in st.session_state:
 if "current_quiz" not in st.session_state:
 
     st.session_state.current_quiz = ""
+
+
+if "current_quiz_name" not in st.session_state:
+
+    st.session_state.current_quiz_name = ""
+
+
+if "quiz_attempt" not in st.session_state:
+
+    st.session_state.quiz_attempt = 0
+
+
+# ============================================================
+# QUIZ HELPER FUNCTIONS
+# ============================================================
+
+def get_quiz_widget_key(
+    quiz_key,
+    question_number
+):
+
+    return (
+        f"{quiz_key}_"
+        f"attempt_{st.session_state.quiz_attempt}_"
+        f"question_{question_number}"
+    )
+
+
+def start_quiz(
+    quiz_key,
+    page_name
+):
+
+    st.session_state.quiz_attempt += 1
+
+    st.session_state.current_quiz = quiz_key
+
+    st.session_state.page = page_name
+
+    st.rerun()
+
+
+def calculate_and_submit_quiz(
+    questions,
+    quiz_name,
+    quiz_key
+):
+
+    unanswered = []
+
+    for i in range(len(questions)):
+
+        widget_key = get_quiz_widget_key(
+            quiz_key,
+            i
+        )
+
+        selected = st.session_state.get(
+            widget_key
+        )
+
+        if selected is None:
+
+            unanswered.append(i + 1)
+
+
+    if unanswered:
+
+        numbers = ", ".join(
+            str(number)
+            for number in unanswered
+        )
+
+        st.warning(
+            f"Please answer question(s): {numbers}"
+        )
+
+        return
+
+
+    score = 0
+
+    for i, question in enumerate(questions):
+
+        widget_key = get_quiz_widget_key(
+            quiz_key,
+            i
+        )
+
+        selected = st.session_state.get(
+            widget_key
+        )
+
+        correct_answer = question["options"][
+            question["answer"]
+        ]
+
+        if selected == correct_answer:
+
+            score += 1
+
+
+    st.session_state.quiz_score = score
+
+    st.session_state.quiz_total = len(
+        questions
+    )
+
+    st.session_state.current_quiz = quiz_key
+
+    st.session_state.current_quiz_name = quiz_name
+
+
+    if st.session_state.logged_in_user:
+
+        save_quiz_score(
+            st.session_state.logged_in_user,
+            quiz_name,
+            score,
+            len(questions)
+        )
+
+
+    st.session_state.page = "quiz_result"
+
+    st.rerun()
 
 
 # ============================================================
@@ -527,12 +660,25 @@ if st.session_state.page == "authentication":
 
             else:
 
-                entered_hash = hash_password(password)
+                user_data = (
+                    st.session_state.users[username]
+                )
 
-                stored_hash = (
-                    st.session_state.users
-                    [username]
-                    ["password"]
+                stored_hash = ""
+
+                if isinstance(user_data, dict):
+
+                    stored_hash = user_data.get(
+                        "password",
+                        ""
+                    )
+
+                elif isinstance(user_data, str):
+
+                    stored_hash = user_data
+
+                entered_hash = hash_password(
+                    password
                 )
 
                 if entered_hash == stored_hash:
@@ -657,16 +803,12 @@ elif st.session_state.page == "home":
     st.header("Choose a Chapter")
 
 
-    # ========================================================
-    # CHAPTER CARDS
-    # ========================================================
-
     col1, col2, col3 = st.columns(3)
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # SETS
-    # --------------------------------------------------------
+    # ========================================================
 
     with col1:
 
@@ -686,16 +828,15 @@ elif st.session_state.page == "home":
             key="sets_quiz"
         ):
 
-            st.session_state.current_quiz = "sets"
+            start_quiz(
+                "sets",
+                "sets_quiz"
+            )
 
-            st.session_state.page = "sets_quiz"
 
-            st.rerun()
-
-
-    # --------------------------------------------------------
+    # ========================================================
     # RELATIONS & FUNCTIONS
-    # --------------------------------------------------------
+    # ========================================================
 
     with col2:
 
@@ -715,16 +856,15 @@ elif st.session_state.page == "home":
             key="relations_quiz"
         ):
 
-            st.session_state.current_quiz = "relations"
+            start_quiz(
+                "relations",
+                "relations_quiz"
+            )
 
-            st.session_state.page = "relations_quiz"
 
-            st.rerun()
-
-
-    # --------------------------------------------------------
+    # ========================================================
     # TRIGONOMETRY
-    # --------------------------------------------------------
+    # ========================================================
 
     with col3:
 
@@ -744,11 +884,10 @@ elif st.session_state.page == "home":
             key="trigonometry_quiz"
         ):
 
-            st.session_state.current_quiz = "trigonometry"
-
-            st.session_state.page = "trigonometry_quiz"
-
-            st.rerun()
+            start_quiz(
+                "trigonometry",
+                "trigonometry_quiz"
+            )
 
 
     st.divider()
@@ -843,7 +982,10 @@ elif st.session_state.page == "sets_quiz":
                 "Choose your answer:",
                 question["options"],
                 index=None,
-                key=f"{quiz_key}_question_{i}"
+                key=get_quiz_widget_key(
+                    quiz_key,
+                    i
+                )
             )
 
             st.divider()
@@ -865,8 +1007,6 @@ elif st.session_state.page == "sets_quiz":
         "Back to Home",
         key="back_sets"
     ):
-
-        clear_quiz_answers(quiz_key)
 
         st.session_state.page = "home"
 
@@ -923,7 +1063,10 @@ elif st.session_state.page == "relations_quiz":
                 "Choose your answer:",
                 question["options"],
                 index=None,
-                key=f"{quiz_key}_question_{i}"
+                key=get_quiz_widget_key(
+                    quiz_key,
+                    i
+                )
             )
 
             st.divider()
@@ -945,8 +1088,6 @@ elif st.session_state.page == "relations_quiz":
         "Back to Home",
         key="back_relations"
     ):
-
-        clear_quiz_answers(quiz_key)
 
         st.session_state.page = "home"
 
@@ -1003,7 +1144,10 @@ elif st.session_state.page == "trigonometry_quiz":
                 "Choose your answer:",
                 question["options"],
                 index=None,
-                key=f"{quiz_key}_question_{i}"
+                key=get_quiz_widget_key(
+                    quiz_key,
+                    i
+                )
             )
 
             st.divider()
@@ -1026,8 +1170,6 @@ elif st.session_state.page == "trigonometry_quiz":
         key="back_trigonometry"
     ):
 
-        clear_quiz_answers(quiz_key)
-
         st.session_state.page = "home"
 
         st.rerun()
@@ -1039,8 +1181,13 @@ elif st.session_state.page == "trigonometry_quiz":
 
 elif st.session_state.page == "quiz_result":
 
+    quiz_name = st.session_state.get(
+        "current_quiz_name",
+        "Quiz"
+    )
+
     st.title(
-        f"{st.session_state.current_quiz} Quiz Results"
+        f"{quiz_name} Quiz Results"
     )
 
     score = st.session_state.get(
@@ -1089,19 +1236,20 @@ elif st.session_state.page == "quiz_result":
         key="try_again"
     ):
 
-        clear_quiz_answers(
-            st.session_state.current_quiz
-        )
+        quiz_key = st.session_state.current_quiz
 
-        if st.session_state.current_quiz == "sets":
+        st.session_state.quiz_attempt += 1
+
+
+        if quiz_key == "sets":
 
             st.session_state.page = "sets_quiz"
 
-        elif st.session_state.current_quiz == "relations":
+        elif quiz_key == "relations":
 
             st.session_state.page = "relations_quiz"
 
-        elif st.session_state.current_quiz == "trigonometry":
+        elif quiz_key == "trigonometry":
 
             st.session_state.page = "trigonometry_quiz"
 
@@ -1143,7 +1291,12 @@ elif st.session_state.page == "leaderboard":
 
         rows = []
 
+
         for username, scores in leaderboard.items():
+
+            if not isinstance(scores, dict):
+                continue
+
 
             sets_score = scores.get(
                 "Sets",
@@ -1160,17 +1313,41 @@ elif st.session_state.page == "leaderboard":
                 {}
             )
 
+
+            if not isinstance(
+                sets_score,
+                dict
+            ):
+                sets_score = {}
+
+
+            if not isinstance(
+                relations_score,
+                dict
+            ):
+                relations_score = {}
+
+
+            if not isinstance(
+                trig_score,
+                dict
+            ):
+                trig_score = {}
+
+
             total_score = (
                 sets_score.get("score", 0)
                 + relations_score.get("score", 0)
                 + trig_score.get("score", 0)
             )
 
+
             total_questions = (
                 sets_score.get("total", 0)
                 + relations_score.get("total", 0)
                 + trig_score.get("total", 0)
             )
+
 
             rows.append({
                 "Username": username,
@@ -1206,99 +1383,3 @@ elif st.session_state.page == "leaderboard":
         st.session_state.page = "home"
 
         st.rerun()
-
-
-# ============================================================
-# HELPER FUNCTIONS
-# ============================================================
-
-def clear_quiz_answers(quiz_key):
-
-    for key in list(st.session_state.keys()):
-
-        if key.startswith(
-            f"{quiz_key}_question_"
-        ):
-
-            del st.session_state[key]
-
-
-def calculate_and_submit_quiz(
-    questions,
-    quiz_name,
-    quiz_key
-):
-
-    unanswered = []
-
-    for i in range(len(questions)):
-
-        selected = st.session_state.get(
-            f"{quiz_key}_question_{i}"
-        )
-
-        if selected is None:
-
-            unanswered.append(i + 1)
-
-
-    if unanswered:
-
-        numbers = ", ".join(
-            str(number)
-            for number in unanswered
-        )
-
-        st.warning(
-            f"Please answer question(s): {numbers}"
-        )
-
-        return
-
-
-    score = 0
-
-
-    for i, question in enumerate(questions):
-
-        selected = st.session_state[
-            f"{quiz_key}_question_{i}"
-        ]
-
-        correct = question["options"][
-            question["answer"]
-        ]
-
-        if selected == correct:
-
-            score += 1
-
-
-    st.session_state.quiz_score = score
-
-    st.session_state.quiz_total = len(
-        questions
-    )
-
-    st.session_state.current_quiz = quiz_key
-
-
-    # --------------------------------------------------------
-    # SAVE SCORE
-    # --------------------------------------------------------
-
-    if st.session_state.logged_in_user:
-
-        save_quiz_score(
-            st.session_state.logged_in_user,
-            quiz_name,
-            score,
-            len(questions)
-        )
-
-
-    clear_quiz_answers(quiz_key)
-
-    st.session_state.page = "quiz_result"
-
-    st.rerun()
