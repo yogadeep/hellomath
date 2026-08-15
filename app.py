@@ -9,8 +9,14 @@ import hashlib
 # ============================================================
 
 USER_FILE = "data/user.json"
+
 SETS_QUIZ_FILE = "data/sets_quiz.json"
-MATHS_ICON = "ICON/maths_icon.png"
+RELATIONS_QUIZ_FILE = "data/relations_quiz.json"
+TRIGONOMETRY_QUIZ_FILE = "data/trigonometry_quiz.json"
+
+LEADERBOARD_FILE = "data/leaderboard.json"
+
+MATHS_ICON = "assets/maths_icon.png"
 
 
 # ============================================================
@@ -25,32 +31,53 @@ st.set_page_config(
 
 
 # ============================================================
-# CUSTOM WEBSITE STYLE
+# CUSTOM COLOUR THEME
 # ============================================================
 
 st.markdown("""
 <style>
 
+/* =========================================================
+   MAIN WEBSITE
+   ========================================================= */
+
 .stApp {
     background-color: #F4F7FB;
 }
 
-/* Main headings */
+
+/* =========================================================
+   HEADINGS
+   ========================================================= */
 
 h1 {
     color: #173B6C;
+    font-weight: 700;
 }
 
 h2 {
     color: #24558C;
+    font-weight: 650;
 }
 
 h3 {
     color: #326FA8;
+    font-weight: 600;
 }
 
 
-/* Buttons */
+/* =========================================================
+   NORMAL TEXT
+   ========================================================= */
+
+p {
+    color: #26384A;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
 
 .stButton > button {
     background-color: #24558C;
@@ -67,9 +94,13 @@ h3 {
 }
 
 
-/* Text input */
+/* =========================================================
+   TEXT INPUTS
+   ========================================================= */
 
 [data-testid="stTextInput"] input {
+    background-color: white;
+    color: #26384A;
     border-radius: 8px;
     border: 1px solid #B8C7D9;
 }
@@ -80,20 +111,97 @@ h3 {
 }
 
 
-/* Quiz radio buttons */
+/* =========================================================
+   TABS
+   ========================================================= */
+
+button[data-baseweb="tab"] {
+    color: #24558C;
+    font-weight: 600;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: #173B6C;
+}
+
+
+/* =========================================================
+   QUIZ OPTIONS
+   ========================================================= */
 
 [data-testid="stRadio"] {
     background-color: white;
-    padding: 15px;
+    padding: 18px;
     border-radius: 10px;
     border: 1px solid #D8E1EC;
 }
 
 
-/* Dividers */
+/* =========================================================
+   DIVIDERS
+   ========================================================= */
 
 hr {
     border-color: #D8E1EC;
+}
+
+
+/* =========================================================
+   CHAPTER CARDS
+   ========================================================= */
+
+.chapter-card {
+    background-color: white;
+    padding: 25px;
+    border-radius: 14px;
+    border: 1px solid #D8E1EC;
+    min-height: 180px;
+    box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.chapter-card h3 {
+    margin-top: 0;
+    color: #173B6C;
+}
+
+.chapter-card p {
+    color: #526579;
+}
+
+
+/* =========================================================
+   RESULT CARD
+   ========================================================= */
+
+.result-card {
+    background-color: white;
+    padding: 30px;
+    border-radius: 14px;
+    border: 1px solid #D8E1EC;
+    text-align: center;
+    box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.result-score {
+    font-size: 42px;
+    font-weight: 700;
+    color: #173B6C;
+}
+
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+
+.brand {
+    font-size: 42px;
+    font-weight: 800;
+    color: #173B6C;
+}
+
+.brand-subtitle {
+    font-size: 18px;
+    color: #526579;
 }
 
 </style>
@@ -154,67 +262,171 @@ def hash_password(password):
 
 
 # ============================================================
-# SETS QUIZ DATA FUNCTIONS
+# GENERIC QUIZ LOADER
 # ============================================================
 
-def load_sets_quiz():
+def load_quiz(file_path):
 
-    if not os.path.exists(SETS_QUIZ_FILE):
+    if not os.path.exists(file_path):
         return []
 
     try:
 
         with open(
-            SETS_QUIZ_FILE,
+            file_path,
             "r",
             encoding="utf-8"
         ) as file:
 
             data = json.load(file)
 
-        if not isinstance(data, dict):
-            return []
-
-        questions = data.get("sets", [])
-
-        if not isinstance(questions, list):
-            return []
-
-        valid_questions = []
-
-        for question in questions:
-
-            if not isinstance(question, dict):
-                continue
-
-            if "question" not in question:
-                continue
-
-            if "options" not in question:
-                continue
-
-            if "answer" not in question:
-                continue
-
-            if not isinstance(question["options"], list):
-                continue
-
-            if not isinstance(question["answer"], int):
-                continue
-
-            if question["answer"] < 0:
-                continue
-
-            if question["answer"] >= len(question["options"]):
-                continue
-
-            valid_questions.append(question)
-
-        return valid_questions
-
     except (json.JSONDecodeError, OSError):
 
         return []
+
+
+    # --------------------------------------------------------
+    # The quiz files can use different top-level names.
+    # We check the common structures.
+    # --------------------------------------------------------
+
+    questions = None
+
+    if isinstance(data, dict):
+
+        if isinstance(data.get("questions"), list):
+
+            questions = data["questions"]
+
+        elif isinstance(data.get("sets"), list):
+
+            questions = data["sets"]
+
+        elif isinstance(data.get("quiz"), list):
+
+            questions = data["quiz"]
+
+
+    elif isinstance(data, list):
+
+        questions = data
+
+
+    if questions is None:
+        return []
+
+
+    # --------------------------------------------------------
+    # Validate every question
+    # --------------------------------------------------------
+
+    valid_questions = []
+
+    for question in questions:
+
+        if not isinstance(question, dict):
+            continue
+
+        if "question" not in question:
+            continue
+
+        if "options" not in question:
+            continue
+
+        if "answer" not in question:
+            continue
+
+        if not isinstance(question["options"], list):
+            continue
+
+        if not isinstance(question["answer"], int):
+            continue
+
+        if question["answer"] < 0:
+            continue
+
+        if question["answer"] >= len(question["options"]):
+            continue
+
+        valid_questions.append(question)
+
+    return valid_questions
+
+
+# ============================================================
+# LEADERBOARD FUNCTIONS
+# ============================================================
+
+def load_leaderboard():
+
+    if not os.path.exists(LEADERBOARD_FILE):
+        return {}
+
+    try:
+
+        with open(
+            LEADERBOARD_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            data = json.load(file)
+
+        if isinstance(data, dict):
+            return data
+
+        return {}
+
+    except (json.JSONDecodeError, OSError):
+
+        return {}
+
+
+def save_leaderboard(data):
+
+    os.makedirs("data", exist_ok=True)
+
+    with open(
+        LEADERBOARD_FILE,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+            data,
+            file,
+            indent=4
+        )
+
+
+def save_quiz_score(username, quiz_name, score, total):
+
+    leaderboard = load_leaderboard()
+
+    if username not in leaderboard:
+
+        leaderboard[username] = {
+            "Sets": {
+                "score": 0,
+                "total": 0
+            },
+            "Relations & Functions": {
+                "score": 0,
+                "total": 0
+            },
+            "Trigonometry": {
+                "score": 0,
+                "total": 0
+            }
+        }
+
+
+    leaderboard[username][quiz_name] = {
+        "score": score,
+        "total": total
+    }
+
+    save_leaderboard(leaderboard)
 
 
 # ============================================================
@@ -246,25 +458,34 @@ if "quiz_total" not in st.session_state:
     st.session_state.quiz_total = 0
 
 
+if "current_quiz" not in st.session_state:
+
+    st.session_state.current_quiz = ""
+
+
 # ============================================================
 # AUTHENTICATION PAGE
 # ============================================================
 
 if st.session_state.page == "authentication":
 
-    st.title("Hello Math")
+    st.markdown(
+        '<div class="brand">Hello Math</div>',
+        unsafe_allow_html=True
+    )
 
-    st.write(
-        "Welcome to the Mathematics learning platform."
+    st.markdown(
+        '<div class="brand-subtitle">'
+        'Class 11 Mathematics Learning Platform'
+        '</div>',
+        unsafe_allow_html=True
     )
 
     st.divider()
 
+
     login_tab, signup_tab = st.tabs(
-        [
-            "Login",
-            "Sign Up"
-        ]
+        ["Login", "Sign Up"]
     )
 
 
@@ -306,15 +527,15 @@ if st.session_state.page == "authentication":
 
             else:
 
-                entered_password_hash = hash_password(
-                    password
+                entered_hash = hash_password(password)
+
+                stored_hash = (
+                    st.session_state.users
+                    [username]
+                    ["password"]
                 )
 
-                stored_password_hash = (
-                    st.session_state.users[username]["password"]
-                )
-
-                if entered_password_hash == stored_password_hash:
+                if entered_hash == stored_hash:
 
                     st.session_state.logged_in_user = username
 
@@ -378,7 +599,7 @@ if st.session_state.page == "authentication":
             elif new_username in st.session_state.users:
 
                 st.error(
-                    "Username already exists. Please choose another username."
+                    "Username already exists."
                 )
 
             elif len(new_password) < 8:
@@ -418,9 +639,12 @@ if st.session_state.page == "authentication":
 
 elif st.session_state.page == "home":
 
-    st.title("Hello Math")
+    st.markdown(
+        '<div class="brand">Hello Math</div>',
+        unsafe_allow_html=True
+    )
 
-    st.subheader(
+    st.write(
         f"Welcome, {st.session_state.logged_in_user}!"
     )
 
@@ -432,86 +656,117 @@ elif st.session_state.page == "home":
 
     st.header("Choose a Chapter")
 
+
+    # ========================================================
+    # CHAPTER CARDS
+    # ========================================================
+
     col1, col2, col3 = st.columns(3)
 
 
-    # ========================================================
+    # --------------------------------------------------------
     # SETS
-    # ========================================================
+    # --------------------------------------------------------
 
     with col1:
 
-        st.subheader("Sets")
+        st.markdown("""
+        <div class="chapter-card">
+            <h3>Sets</h3>
+            <p>
+                Learn and practice questions based on Sets.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.write(
-            "Learn and practice questions based on Sets."
-        )
+        st.write("")
 
         if st.button(
             "Start Quiz",
             key="sets_quiz"
         ):
 
+            st.session_state.current_quiz = "sets"
+
             st.session_state.page = "sets_quiz"
 
             st.rerun()
 
 
-    # ========================================================
+    # --------------------------------------------------------
     # RELATIONS & FUNCTIONS
-    # ========================================================
+    # --------------------------------------------------------
 
     with col2:
 
-        st.subheader("Relations & Functions")
+        st.markdown("""
+        <div class="chapter-card">
+            <h3>Relations & Functions</h3>
+            <p>
+                Practice Relations and Functions concepts.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.write(
-            "Practice Relations and Functions."
-        )
+        st.write("")
 
         if st.button(
             "Start Quiz",
             key="relations_quiz"
         ):
 
-            st.session_state.page = "relations"
+            st.session_state.current_quiz = "relations"
+
+            st.session_state.page = "relations_quiz"
 
             st.rerun()
 
 
-    # ========================================================
+    # --------------------------------------------------------
     # TRIGONOMETRY
-    # ========================================================
+    # --------------------------------------------------------
 
     with col3:
 
-        st.subheader("Trigonometry")
+        st.markdown("""
+        <div class="chapter-card">
+            <h3>Trigonometry</h3>
+            <p>
+                Practice important Trigonometry concepts.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.write(
-            "Practice important Trigonometry concepts."
-        )
+        st.write("")
 
         if st.button(
             "Start Quiz",
             key="trigonometry_quiz"
         ):
 
-            st.session_state.page = "trigonometry"
+            st.session_state.current_quiz = "trigonometry"
+
+            st.session_state.page = "trigonometry_quiz"
 
             st.rerun()
 
 
     st.divider()
 
+
+    # ========================================================
+    # LEADERBOARD
+    # ========================================================
+
     st.header("Leaderboard")
 
     st.write(
-        "See how you compare with other students."
+        "See your quiz performance and compare scores."
     )
 
     if st.button(
         "View Leaderboard",
-        key="leaderboard"
+        key="leaderboard_button"
     ):
 
         st.session_state.page = "leaderboard"
@@ -521,9 +776,14 @@ elif st.session_state.page == "home":
 
     st.divider()
 
+
+    # ========================================================
+    # LOGOUT
+    # ========================================================
+
     if st.button(
         "Logout",
-        key="logout"
+        key="logout_button"
     ):
 
         st.session_state.logged_in_user = None
@@ -541,7 +801,13 @@ elif st.session_state.page == "sets_quiz":
 
     st.title("Sets Quiz")
 
-    questions = load_sets_quiz()
+    questions = load_quiz(
+        SETS_QUIZ_FILE
+    )
+
+    quiz_name = "Sets"
+
+    quiz_key = "sets"
 
 
     if not questions:
@@ -551,18 +817,8 @@ elif st.session_state.page == "sets_quiz":
         )
 
         st.info(
-            "Check data/sets_quiz.json and make sure "
-            "the questions are stored inside the 'sets' list."
+            "Check data/sets_quiz.json."
         )
-
-        if st.button(
-            "Back to Home",
-            key="back_no_questions"
-        ):
-
-            st.session_state.page = "home"
-
-            st.rerun()
 
     else:
 
@@ -572,10 +828,6 @@ elif st.session_state.page == "sets_quiz":
 
         st.divider()
 
-
-        # ====================================================
-        # QUESTIONS
-        # ====================================================
 
         for i, question in enumerate(questions):
 
@@ -591,84 +843,194 @@ elif st.session_state.page == "sets_quiz":
                 "Choose your answer:",
                 question["options"],
                 index=None,
-                key=f"sets_question_{i}"
+                key=f"{quiz_key}_question_{i}"
             )
 
             st.divider()
 
 
-        # ====================================================
-        # SUBMIT QUIZ
-        # ====================================================
+        if st.button(
+            "Submit Quiz",
+            key="submit_sets"
+        ):
+
+            calculate_and_submit_quiz(
+                questions,
+                quiz_name,
+                quiz_key
+            )
+
+
+    if st.button(
+        "Back to Home",
+        key="back_sets"
+    ):
+
+        clear_quiz_answers(quiz_key)
+
+        st.session_state.page = "home"
+
+        st.rerun()
+
+
+# ============================================================
+# RELATIONS & FUNCTIONS QUIZ PAGE
+# ============================================================
+
+elif st.session_state.page == "relations_quiz":
+
+    st.title("Relations & Functions Quiz")
+
+    questions = load_quiz(
+        RELATIONS_QUIZ_FILE
+    )
+
+    quiz_name = "Relations & Functions"
+
+    quiz_key = "relations"
+
+
+    if not questions:
+
+        st.error(
+            "No valid Relations & Functions quiz questions were found."
+        )
+
+        st.info(
+            "Check data/relations_quiz.json."
+        )
+
+    else:
+
+        st.write(
+            f"Total Questions: {len(questions)}"
+        )
+
+        st.divider()
+
+
+        for i, question in enumerate(questions):
+
+            st.subheader(
+                f"Question {i + 1}"
+            )
+
+            st.write(
+                question["question"]
+            )
+
+            st.radio(
+                "Choose your answer:",
+                question["options"],
+                index=None,
+                key=f"{quiz_key}_question_{i}"
+            )
+
+            st.divider()
+
 
         if st.button(
             "Submit Quiz",
-            key="submit_sets_quiz"
+            key="submit_relations"
         ):
 
-            unanswered = []
-
-            for i in range(len(questions)):
-
-                selected_answer = st.session_state.get(
-                    f"sets_question_{i}"
-                )
-
-                if selected_answer is None:
-
-                    unanswered.append(i + 1)
+            calculate_and_submit_quiz(
+                questions,
+                quiz_name,
+                quiz_key
+            )
 
 
-            if unanswered:
+    if st.button(
+        "Back to Home",
+        key="back_relations"
+    ):
 
-                question_numbers = ", ".join(
-                    str(number)
-                    for number in unanswered
-                )
+        clear_quiz_answers(quiz_key)
 
-                st.warning(
-                    f"Please answer question(s): "
-                    f"{question_numbers}"
-                )
+        st.session_state.page = "home"
 
-            else:
-
-                score = 0
-
-                for i, question in enumerate(questions):
-
-                    selected_answer = st.session_state[
-                        f"sets_question_{i}"
-                    ]
-
-                    correct_answer = question["options"][
-                        question["answer"]
-                    ]
-
-                    if selected_answer == correct_answer:
-
-                        score += 1
+        st.rerun()
 
 
-                st.session_state.quiz_score = score
+# ============================================================
+# TRIGONOMETRY QUIZ PAGE
+# ============================================================
 
-                st.session_state.quiz_total = len(
-                    questions
-                )
+elif st.session_state.page == "trigonometry_quiz":
 
-                st.session_state.page = "quiz_result"
+    st.title("Trigonometry Quiz")
 
-                st.rerun()
+    questions = load_quiz(
+        TRIGONOMETRY_QUIZ_FILE
+    )
+
+    quiz_name = "Trigonometry"
+
+    quiz_key = "trigonometry"
+
+
+    if not questions:
+
+        st.error(
+            "No valid Trigonometry quiz questions were found."
+        )
+
+        st.info(
+            "Check data/trigonometry_quiz.json."
+        )
+
+    else:
+
+        st.write(
+            f"Total Questions: {len(questions)}"
+        )
+
+        st.divider()
+
+
+        for i, question in enumerate(questions):
+
+            st.subheader(
+                f"Question {i + 1}"
+            )
+
+            st.write(
+                question["question"]
+            )
+
+            st.radio(
+                "Choose your answer:",
+                question["options"],
+                index=None,
+                key=f"{quiz_key}_question_{i}"
+            )
+
+            st.divider()
 
 
         if st.button(
-            "Back to Home",
-            key="back_from_sets_quiz"
+            "Submit Quiz",
+            key="submit_trigonometry"
         ):
 
-            st.session_state.page = "home"
+            calculate_and_submit_quiz(
+                questions,
+                quiz_name,
+                quiz_key
+            )
 
-            st.rerun()
+
+    if st.button(
+        "Back to Home",
+        key="back_trigonometry"
+    ):
+
+        clear_quiz_answers(quiz_key)
+
+        st.session_state.page = "home"
+
+        st.rerun()
 
 
 # ============================================================
@@ -677,7 +1039,9 @@ elif st.session_state.page == "sets_quiz":
 
 elif st.session_state.page == "quiz_result":
 
-    st.title("Quiz Results")
+    st.title(
+        f"{st.session_state.current_quiz} Quiz Results"
+    )
 
     score = st.session_state.get(
         "quiz_score",
@@ -689,9 +1053,7 @@ elif st.session_state.page == "quiz_result":
         0
     )
 
-    st.header(
-        f"Score: {score} / {total}"
-    )
+    percentage = 0
 
     if total > 0:
 
@@ -699,9 +1061,21 @@ elif st.session_state.page == "quiz_result":
             score / total
         ) * 100
 
-        st.write(
-            f"Percentage: {percentage:.1f}%"
-        )
+
+    st.markdown(f"""
+    <div class="result-card">
+
+        <div class="result-score">
+            {score} / {total}
+        </div>
+
+        <p>
+            You scored {percentage:.1f}%
+        </p>
+
+    </div>
+    """, unsafe_allow_html=True)
+
 
     st.divider()
 
@@ -712,16 +1086,24 @@ elif st.session_state.page == "quiz_result":
 
     if st.button(
         "Try Again",
-        key="try_sets_again"
+        key="try_again"
     ):
 
-        for key in list(st.session_state.keys()):
+        clear_quiz_answers(
+            st.session_state.current_quiz
+        )
 
-            if key.startswith("sets_question_"):
+        if st.session_state.current_quiz == "sets":
 
-                del st.session_state[key]
+            st.session_state.page = "sets_quiz"
 
-        st.session_state.page = "sets_quiz"
+        elif st.session_state.current_quiz == "relations":
+
+            st.session_state.page = "relations_quiz"
+
+        elif st.session_state.current_quiz == "trigonometry":
+
+            st.session_state.page = "trigonometry_quiz"
 
         st.rerun()
 
@@ -732,7 +1114,7 @@ elif st.session_state.page == "quiz_result":
 
     if st.button(
         "Back to Home",
-        key="back_from_result"
+        key="back_result"
     ):
 
         st.session_state.page = "home"
@@ -741,60 +1123,80 @@ elif st.session_state.page == "quiz_result":
 
 
 # ============================================================
-# RELATIONS & FUNCTIONS
-# ============================================================
-
-elif st.session_state.page == "relations":
-
-    st.title("Relations & Functions Quiz")
-
-    st.write(
-        "The Relations & Functions quiz will be created here."
-    )
-
-    if st.button(
-        "Back to Home",
-        key="back_relations"
-    ):
-
-        st.session_state.page = "home"
-
-        st.rerun()
-
-
-# ============================================================
-# TRIGONOMETRY
-# ============================================================
-
-elif st.session_state.page == "trigonometry":
-
-    st.title("Trigonometry Quiz")
-
-    st.write(
-        "The Trigonometry quiz will be created here."
-    )
-
-    if st.button(
-        "Back to Home",
-        key="back_trigonometry"
-    ):
-
-        st.session_state.page = "home"
-
-        st.rerun()
-
-
-# ============================================================
-# LEADERBOARD
+# LEADERBOARD PAGE
 # ============================================================
 
 elif st.session_state.page == "leaderboard":
 
     st.title("Leaderboard")
 
-    st.write(
-        "The leaderboard will be created here."
-    )
+    leaderboard = load_leaderboard()
+
+
+    if not leaderboard:
+
+        st.info(
+            "No quiz scores have been recorded yet."
+        )
+
+    else:
+
+        rows = []
+
+        for username, scores in leaderboard.items():
+
+            sets_score = scores.get(
+                "Sets",
+                {}
+            )
+
+            relations_score = scores.get(
+                "Relations & Functions",
+                {}
+            )
+
+            trig_score = scores.get(
+                "Trigonometry",
+                {}
+            )
+
+            total_score = (
+                sets_score.get("score", 0)
+                + relations_score.get("score", 0)
+                + trig_score.get("score", 0)
+            )
+
+            total_questions = (
+                sets_score.get("total", 0)
+                + relations_score.get("total", 0)
+                + trig_score.get("total", 0)
+            )
+
+            rows.append({
+                "Username": username,
+                "Total Score": total_score,
+                "Total Questions": total_questions
+            })
+
+
+        rows.sort(
+            key=lambda x: x["Total Score"],
+            reverse=True
+        )
+
+
+        for position, row in enumerate(rows):
+
+            st.write(
+                f"**{position + 1}. "
+                f"{row['Username']}** — "
+                f"{row['Total Score']} / "
+                f"{row['Total Questions']}"
+            )
+
+
+    st.divider()
+
 
     if st.button(
         "Back to Home",
@@ -804,3 +1206,99 @@ elif st.session_state.page == "leaderboard":
         st.session_state.page = "home"
 
         st.rerun()
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def clear_quiz_answers(quiz_key):
+
+    for key in list(st.session_state.keys()):
+
+        if key.startswith(
+            f"{quiz_key}_question_"
+        ):
+
+            del st.session_state[key]
+
+
+def calculate_and_submit_quiz(
+    questions,
+    quiz_name,
+    quiz_key
+):
+
+    unanswered = []
+
+    for i in range(len(questions)):
+
+        selected = st.session_state.get(
+            f"{quiz_key}_question_{i}"
+        )
+
+        if selected is None:
+
+            unanswered.append(i + 1)
+
+
+    if unanswered:
+
+        numbers = ", ".join(
+            str(number)
+            for number in unanswered
+        )
+
+        st.warning(
+            f"Please answer question(s): {numbers}"
+        )
+
+        return
+
+
+    score = 0
+
+
+    for i, question in enumerate(questions):
+
+        selected = st.session_state[
+            f"{quiz_key}_question_{i}"
+        ]
+
+        correct = question["options"][
+            question["answer"]
+        ]
+
+        if selected == correct:
+
+            score += 1
+
+
+    st.session_state.quiz_score = score
+
+    st.session_state.quiz_total = len(
+        questions
+    )
+
+    st.session_state.current_quiz = quiz_key
+
+
+    # --------------------------------------------------------
+    # SAVE SCORE
+    # --------------------------------------------------------
+
+    if st.session_state.logged_in_user:
+
+        save_quiz_score(
+            st.session_state.logged_in_user,
+            quiz_name,
+            score,
+            len(questions)
+        )
+
+
+    clear_quiz_answers(quiz_key)
+
+    st.session_state.page = "quiz_result"
+
+    st.rerun()
